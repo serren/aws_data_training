@@ -8,7 +8,7 @@ from importlib import reload
 reload(site)
 import pyarrow
 
-prefix = 'order-service';
+prefix = 'order-service'
 
 input_loc = "smeranovich/csv-data/" + prefix + ".csv"
 output_loc = "smeranovich/" + prefix + "/"
