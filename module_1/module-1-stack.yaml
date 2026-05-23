@@ -1,0 +1,104 @@
+---
+Metadata:
+  AWSToolsMetrics:
+    IaC_Generator: "arn:aws:cloudformation:us-east-1:879548554867:generatedTemplate/32182fc5-815a-45b2-89f3-09bdfc85b6a7"
+Resources:
+  IAMRoleSmeranovichgluerole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::879548554867:policy/smeranovich-glue-rolePolicy"
+      - "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess"
+      - "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+      MaxSessionDuration: 3600
+      RoleName: "smeranovich-glue-role"
+      Description: ""
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Condition:
+            StringEquals:
+              aws:SourceAccount: "879548554867"
+          Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "glue.amazonaws.com"
+  GlueJobSmeranovichpyshelljob:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Glue::Job"
+    DeletionPolicy: "Retain"
+    Properties:
+      MaxRetries: 0
+      JobMode: "SCRIPT"
+      Description: ""
+      Timeout: 2880
+      AllocatedCapacity: 0
+      JobRunQueuingEnabled: false
+      Name: "smeranovich_py_shell_job"
+      Role: "arn:aws:iam::879548554867:role/smeranovich-glue-role"
+      DefaultArguments:
+        "--enable-job-insights": "false"
+        "--job-language": "python"
+        "--TempDir": "s3://smeranovich/temporary/"
+        "--enable-observability-metrics": "false"
+        "--enable-glue-datacatalog": "true"
+        library-set: "analytics"
+      ExecutionClass: "STANDARD"
+      Command:
+        ScriptLocation: "s3://smeranovich/scripts/smeranovich_py_shell_job.py"
+        PythonVersion: "3.9"
+        Name: "pythonshell"
+      GlueVersion: "3.0"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      MaxCapacity: 0.0625
+  S3BucketSmeranovich:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: "Retain"
+    Properties:
+      AbacStatus: "Disabled"
+      PublicAccessBlockConfiguration:
+        RestrictPublicBuckets: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        BlockPublicAcls: true
+      BucketName: "smeranovich"
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: "BucketOwnerEnforced"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - BucketKeyEnabled: true
+          BlockedEncryptionTypes:
+            EncryptionType:
+            - "SSE-C"
+          ServerSideEncryptionByDefault:
+            SSEAlgorithm: "AES256"
+  IAMManagedPolicyPolicysmeranovichgluerolePolicy:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::ManagedPolicy"
+    DeletionPolicy: "Retain"
+    Properties:
+      ManagedPolicyName: "smeranovich-glue-rolePolicy"
+      Path: "/"
+      Description: ""
+      Groups: []
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Condition:
+            StringEquals:
+              aws:ResourceAccount: "879548554867"
+          Resource:
+          - "arn:aws:s3:::smeranovich/*"
+          Action:
+          - "s3:GetObject"
+          - "s3:PutObject"
+          Effect: "Allow"
+      Roles:
+      - "smeranovich-glue-role"
+      Users: []
