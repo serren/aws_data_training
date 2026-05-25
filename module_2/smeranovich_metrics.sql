@@ -14,7 +14,7 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT 
   'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION
-  's3://smeranovich/metrics'
+  's3://smeranovich/parquet-data'
 TBLPROPERTIES (
   'classification'='parquet', 
   'transient_lastDdlTime'='1779605881')
