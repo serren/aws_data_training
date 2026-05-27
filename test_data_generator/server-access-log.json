@@ -1,0 +1,192 @@
+{
+  "@type": "server-access-log",
+  "services": [
+    {
+      "name": "user-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/users/{id}",
+          "httpMethod": "GET",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "name": "audit-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/audit",
+          "httpMethod": "POST",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "name": "geolocation-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/geolocation/build-path",
+          "httpMethod": "POST",
+          "dependencies": [
+            {
+              "serviceName": "audit-service",
+              "relativeUrl": "/api/v1/audit",
+              "httpMethod": "POST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "inventory-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/inventory/{id}",
+          "httpMethod": "GET",
+          "dependencies": []
+        },
+        {
+          "relativeUrl": "/api/v1/inventory/{id}",
+          "httpMethod": "POST",
+          "dependencies": [
+            {
+              "serviceName": "audit-service",
+              "relativeUrl": "/api/v1/audit",
+              "httpMethod": "POST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shipment-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/shipments/schedule",
+          "httpMethod": "POST",
+          "dependencies": [
+            {
+              "serviceName": "audit-service",
+              "relativeUrl": "/api/v1/audit",
+              "httpMethod": "POST"
+            },
+            {
+              "serviceName": "geolocation-service",
+              "relativeUrl": "/api/v1/geolocation/build-path",
+              "httpMethod": "POST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "payment-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/payments/3ds",
+          "httpMethod": "POST",
+          "dependencies": [
+            {
+              "serviceName": "audit-service",
+              "relativeUrl": "/api/v1/audit",
+              "httpMethod": "POST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "order-service",
+      "endpoints": [
+        {
+          "relativeUrl": "/api/v1/orders",
+          "httpMethod": "POST",
+          "dependencies": [
+            {
+              "serviceName": "audit-service",
+              "relativeUrl": "/api/v1/audit",
+              "httpMethod": "POST"
+            },
+            {
+              "serviceName": "user-service",
+              "relativeUrl": "/api/v1/users/{id}",
+              "httpMethod": "GET"
+            },
+            {
+              "serviceName": "inventory-service",
+              "relativeUrl": "/api/v1/inventory/{id}",
+              "httpMethod": "GET"
+            },
+            {
+              "serviceName": "inventory-service",
+              "relativeUrl": "/api/v1/inventory/{id}",
+              "httpMethod": "POST"
+            },
+            {
+              "serviceName": "shipment-service",
+              "relativeUrl": "/api/v1/shipments/schedule",
+              "httpMethod": "POST"
+            },
+            {
+              "serviceName": "payment-service",
+              "relativeUrl": "/api/v1/payments/3ds",
+              "httpMethod": "POST"
+            }
+          ]
+        },
+        {
+          "relativeUrl": "/api/v1/orders/{id}",
+          "httpMethod": "GET",
+          "dependencies": [
+            {
+              "serviceName": "user-service",
+              "relativeUrl": "/api/v1/users/{id}",
+              "httpMethod": "GET"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "loadItems": [
+    {
+      "userAgent": "Chrome",
+      "userAddress": "192.168.15.15",
+      "remoteUser": "129837ejghdfdhg",
+      "call": {
+        "serviceName": "user-service",
+        "relativeUrl": "/api/v1/users/{id}",
+        "httpMethod": "GET"
+      }
+    },
+    {
+      "userAgent": "Edge",
+      "userAddress": "192.168.16.16",
+      "remoteUser": "34509dlkjg",
+      "call": {
+        "serviceName": "order-service",
+        "relativeUrl": "/api/v1/orders/{id}",
+        "httpMethod": "GET"
+      }
+    },
+    {
+      "userAgent": "Firefox",
+      "userAddress": "192.168.17.17",
+      "remoteUser": ";ldkh045",
+      "call": {
+        "serviceName": "order-service",
+        "relativeUrl": "/api/v1/orders",
+        "httpMethod": "POST"
+      }
+    }
+  ],
+  "numberOfIterations": 10000,
+  "networkLagMinMillis": 10,
+  "networkLagMaxMillis": 1500,
+  "timer": {
+    "@type": "synthetic",
+    "startTime": "2022-09-15T13:43:01.005Z",
+    "stepMillis": 15000
+  },
+  "outputDirectoryPath": "test-output"
+}
