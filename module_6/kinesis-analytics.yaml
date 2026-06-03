@@ -1,0 +1,340 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Kinesis streams, IAM roles, Kinesis Data Analytics Flink app, and Firehose delivery to S3
+
+Parameters:
+  KinesisStreamRegion:
+    Type: String
+    Default: us-east-1
+    Description: AWS region of the Kinesis streams
+  ApplicationJarKey:
+    Type: String
+    Default: flink-app-6/flink-metrics-module6-1.0-SNAPSHOT.jar
+    Description: S3 object key for the Flink application uber JAR (must exist in smeranovich-kinesis-app before deploying)
+
+Resources:
+
+  # ── Input stream ──────────────────────────────────────────────────────────────
+
+  MetricsKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: smeranovich-kinesis-stream
+      ShardCount: 1
+      StreamModeDetails:
+        StreamMode: PROVISIONED
+
+  # ── Output stream ─────────────────────────────────────────────────────────────
+
+  OutputKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: smeranovich-kinesis-output-stream
+      ShardCount: 1
+      StreamModeDetails:
+        StreamMode: PROVISIONED
+
+  # ── S3 bucket for Athena query results ───────────────────────────────────────
+
+  AthenaOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: smeranovich-athena-output
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ── S3 bucket for Firehose output ─────────────────────────────────────────────
+
+  FirehoseOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: smeranovich-kinesis-output
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ── IAM role for KDA Flink application ───────────────────────────────────────
+
+  KinesisAnalyticsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: KinesisAnalyticsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:DescribeStream
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                Resource: !GetAtt MetricsKinesisStream.Arn
+              - Effect: Allow
+                Action:
+                  - kinesis:PutRecord
+                  - kinesis:PutRecords
+                  - kinesis:DescribeStream
+                  - kinesis:ListShards
+                Resource: !GetAtt OutputKinesisStream.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource: arn:aws:s3:::smeranovich-kinesis-app/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogDelivery
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: "*"
+
+  # ── IAM role for Firehose ─────────────────────────────────────────────────────
+
+  FirehoseExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FirehosePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:DescribeStream
+                  - kinesis:ListShards
+                Resource: !GetAtt OutputKinesisStream.Arn
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt FirehoseOutputBucket.Arn
+                  - !Sub "${FirehoseOutputBucket.Arn}/*"
+
+  # ── CloudWatch logging ────────────────────────────────────────────────────────
+
+  ApplicationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/kinesis-analytics/smeranovich-metrics-processor
+      RetentionInDays: 7
+
+  ApplicationLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref ApplicationLogGroup
+      LogStreamName: kinesis-analytics-log-stream
+
+  # ── KDA Flink application ─────────────────────────────────────────────────────
+
+  MetricsFlinkApplication:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      ApplicationName: smeranovich-metrics-processor
+      RuntimeEnvironment: FLINK-1_15
+      ServiceExecutionRole: !GetAtt KinesisAnalyticsExecutionRole.Arn
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: !Sub arn:aws:s3:::smeranovich-kinesis-app
+              FileKey: !Ref ApplicationJarKey
+          CodeContentType: ZIPFILE
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: KinesisConsumerConfig
+              PropertyMap:
+                streamName: !Ref MetricsKinesisStream
+                region: !Ref KinesisStreamRegion
+            - PropertyGroupId: KinesisSinkConfig
+              PropertyMap:
+                streamName: !Ref OutputKinesisStream
+                region: !Ref KinesisStreamRegion
+        FlinkApplicationConfiguration:
+          ParallelismConfiguration:
+            ConfigurationType: CUSTOM
+            Parallelism: 1
+            ParallelismPerKPU: 1
+            AutoScalingEnabled: false
+          CheckpointConfiguration:
+            ConfigurationType: DEFAULT
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            LogLevel: DEBUG
+            MetricsLevel: APPLICATION
+
+  ApplicationLoggingOption:
+    Type: AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption
+    Properties:
+      ApplicationName: !Ref MetricsFlinkApplication
+      CloudWatchLoggingOption:
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/smeranovich-metrics-processor:log-stream:kinesis-analytics-log-stream
+
+  # ── Glue DataCatalog ─────────────────────────────────────────────────────────
+
+  MetricsGlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Sub '${AWS::AccountId}'
+      DatabaseInput:
+        Name: smeranovich_kinesis_db
+
+  MetricsGlueTable:
+    Type: AWS::Glue::Table
+    DependsOn: MetricsGlueDatabase
+    Properties:
+      CatalogId: !Sub '${AWS::AccountId}'
+      DatabaseName: smeranovich_kinesis_db
+      TableInput:
+        Name: smeranovich_kinesis_metrics
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: componentname
+            Type: string
+        StorageDescriptor:
+          Location: !Sub 's3://${FirehoseOutputBucket}/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+            Parameters:
+              serialization.format: '1'
+          Columns:
+            - Name: fromtimestamp
+              Type: string
+            - Name: maxvalue
+              Type: double
+            - Name: metricname
+              Type: string
+            - Name: minvalue
+              Type: double
+            - Name: totimestamp
+              Type: string
+            - Name: unit
+              Type: string
+
+  GluePartitionUserService:
+    Type: AWS::Glue::Partition
+    DependsOn: MetricsGlueTable
+    Properties:
+      CatalogId: !Sub '${AWS::AccountId}'
+      DatabaseName: smeranovich_kinesis_db
+      TableName: smeranovich_kinesis_metrics
+      PartitionInput:
+        Values:
+          - user-service
+        StorageDescriptor:
+          Location: !Sub 's3://${FirehoseOutputBucket}/user-service/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+            Parameters:
+              serialization.format: '1'
+
+  GluePartitionOrderService:
+    Type: AWS::Glue::Partition
+    DependsOn: MetricsGlueTable
+    Properties:
+      CatalogId: !Sub '${AWS::AccountId}'
+      DatabaseName: smeranovich_kinesis_db
+      TableName: smeranovich_kinesis_metrics
+      PartitionInput:
+        Values:
+          - order-service
+        StorageDescriptor:
+          Location: !Sub 's3://${FirehoseOutputBucket}/order-service/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+            Parameters:
+              serialization.format: '1'
+
+  # ── Firehose delivery stream ──────────────────────────────────────────────────
+
+  MetricsFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: smeranovich-metrics-firehose
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt OutputKinesisStream.Arn
+        RoleARN: !GetAtt FirehoseExecutionRole.Arn
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt FirehoseOutputBucket.Arn
+        RoleARN: !GetAtt FirehoseExecutionRole.Arn
+        Prefix: "!{partitionKeyFromQuery:componentName}/"
+        ErrorOutputPrefix: "error/!{firehose:error-output-type}/"
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 64
+        DynamicPartitioningConfiguration:
+          Enabled: true
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Type: MetadataExtraction
+              Parameters:
+                - ParameterName: MetadataExtractionQuery
+                  ParameterValue: '{componentName: .componentName}'
+                - ParameterName: JsonParsingEngine
+                  ParameterValue: JQ-1.6
+            - Type: AppendDelimiterToRecord
+              Parameters:
+                - ParameterName: Delimiter
+                  ParameterValue: '\n'
+
+Outputs:
+  KinesisStreamName:
+    Value: !Ref MetricsKinesisStream
+    Description: Name of the input Kinesis Data Stream
+  OutputKinesisStreamName:
+    Value: !Ref OutputKinesisStream
+    Description: Name of the output Kinesis Data Stream
+  FlinkApplicationName:
+    Value: !Ref MetricsFlinkApplication
+    Description: Name of the Kinesis Data Analytics Flink application
+  FirehoseOutputBucketName:
+    Value: !Ref FirehoseOutputBucket
+    Description: Name of the S3 bucket receiving Firehose output
+  FirehoseDeliveryStreamName:
+    Value: !Ref MetricsFirehose
+    Description: Name of the Firehose delivery stream
+  GlueDatabaseName:
+    Value: !Ref MetricsGlueDatabase
+    Description: Glue DataCatalog database name
+  GlueTableName:
+    Value: !Ref MetricsGlueTable
+    Description: Glue DataCatalog table name
+  AthenaOutputBucketName:
+    Value: !Ref AthenaOutputBucket
+    Description: S3 bucket for Athena query results

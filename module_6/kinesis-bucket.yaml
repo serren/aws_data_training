@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 bucket for Flink application JAR
+
+Resources:
+  ApplicationJarBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: smeranovich-kinesis-app
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  BucketName:
+    Value: !Ref ApplicationJarBucket
