@@ -1,1 +1,0 @@
-cdk migrate --stack-name sub-task-1-stack --from-path ./sub-task-1-stack-1779540091195.yaml --language typescript
