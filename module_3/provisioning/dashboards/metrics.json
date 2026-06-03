@@ -1,0 +1,104 @@
+{
+  "title": "Kinesis Metrics",
+  "uid": "kinesis-metrics",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-3h", "to": "now" },
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "componentname",
+        "label": "Component",
+        "type": "query",
+        "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+        "query": {
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "smeranovich_kinesis_db",
+            "region": "__default"
+          },
+          "format": 1,
+          "rawSQL": "SELECT DISTINCT componentname FROM smeranovich_kinesis_metrics ORDER BY componentname"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "metricname",
+        "label": "Metric",
+        "type": "query",
+        "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+        "query": {
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "smeranovich_kinesis_db",
+            "region": "__default"
+          },
+          "format": 1,
+          "rawSQL": "SELECT DISTINCT metricname FROM smeranovich_kinesis_metrics WHERE componentname = '${componentname}' ORDER BY metricname"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "${metricname} — ${componentname}",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "smeranovich_kinesis_db",
+            "region": "__default"
+          },
+          "format": 0,
+          "rawSQL": "SELECT from_iso8601_timestamp(fromtimestamp) AS time, (minvalue + maxvalue) / 2.0 AS avg_value, minvalue, maxvalue FROM \"smeranovich_kinesis_db\".\"smeranovich_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Raw data — last 20 windows",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+      "options": { "sortBy": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "smeranovich_kinesis_db",
+            "region": "__default"
+          },
+          "format": 1,
+          "rawSQL": "SELECT fromtimestamp, totimestamp, componentname, metricname, minvalue, maxvalue, unit FROM \"smeranovich_kinesis_db\".\"smeranovich_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY totimestamp DESC LIMIT 20"
+        }
+      ]
+    }
+  ]
+}
