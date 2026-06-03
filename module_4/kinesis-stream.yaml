@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Kinesis Data Stream with provisioned mode and 1 shard
+
+Resources:
+  MyKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: smeranovich-kinesis-stream
+      ShardCount: 1
+      StreamModeDetails:
+        StreamMode: PROVISIONED

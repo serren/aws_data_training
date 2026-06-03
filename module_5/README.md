@@ -66,7 +66,7 @@ The CSV path is a required argument — the application throws `IllegalArgumentE
 
 The integration test (`StreamingJobTest`) requires Docker with LocalStack (Kinesis). It publishes 9 test events spanning two 5-minute windows and verifies the Flink pipeline processes them correctly.
 
-For Docker and WSL2 setup see [DOCKER.md](DOCKER.md).
+For Docker and WSL2 setup see [DOCKER.md](../DOCKER.md).
 
 ```bash
 cd module_5

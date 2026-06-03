@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Kinesis Data Stream, IAM role, and Kinesis Data Analytics application for metrics processing
+
+Parameters:
+  KinesisStreamRegion:
+    Type: String
+    Default: us-east-1
+    Description: AWS region of the Kinesis stream
+  ApplicationJarKey:
+    Type: String
+    Default: flink-app/flink-metrics-1.0-SNAPSHOT.jar
+    Description: S3 object key for the Flink application uber JAR (must exist in smeranovich-kinesis-app before deploying)
+
+Resources:
+  MetricsKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: smeranovich-kinesis-stream
+      ShardCount: 1
+      StreamModeDetails:
+        StreamMode: PROVISIONED
+
+  KinesisAnalyticsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: KinesisAnalyticsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:DescribeStream
+                  - kinesis:ListShards
+                  - kinesis:ListStreams
+                Resource: !GetAtt MetricsKinesisStream.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource: arn:aws:s3:::smeranovich-kinesis-app/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogDelivery
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: "*"
+
+  ApplicationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/kinesis-analytics/smeranovich-metrics-processor
+      RetentionInDays: 7
+
+  ApplicationLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref ApplicationLogGroup
+      LogStreamName: kinesis-analytics-log-stream
+
+  MetricsFlinkApplication:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      ApplicationName: smeranovich-metrics-processor
+      RuntimeEnvironment: FLINK-1_15
+      ServiceExecutionRole: !GetAtt KinesisAnalyticsExecutionRole.Arn
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: !Sub arn:aws:s3:::smeranovich-kinesis-app
+              FileKey: !Ref ApplicationJarKey
+          CodeContentType: ZIPFILE
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: KinesisConsumerConfig
+              PropertyMap:
+                streamName: !Ref MetricsKinesisStream
+                region: !Ref KinesisStreamRegion
+        FlinkApplicationConfiguration:
+          ParallelismConfiguration:
+            ConfigurationType: CUSTOM
+            Parallelism: 1
+            ParallelismPerKPU: 1
+            AutoScalingEnabled: false
+          CheckpointConfiguration:
+            ConfigurationType: DEFAULT
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            LogLevel: INFO
+            MetricsLevel: APPLICATION
+
+  ApplicationLoggingOption:
+    Type: AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption
+    Properties:
+      ApplicationName: !Ref MetricsFlinkApplication
+      CloudWatchLoggingOption:
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/smeranovich-metrics-processor:log-stream:kinesis-analytics-log-stream
+
+Outputs:
+  KinesisStreamName:
+    Value: !Ref MetricsKinesisStream
+    Description: Name of the Kinesis Data Stream
+  FlinkApplicationName:
+    Value: !Ref MetricsFlinkApplication
+    Description: Name of the Kinesis Data Analytics Flink application
