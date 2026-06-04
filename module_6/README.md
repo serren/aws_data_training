@@ -46,6 +46,13 @@ mvn package -DskipTests
 
 ### 2. Upload JAR to S3
 
+Create S3 bucket:
+```bash
+aws cloudformation deploy  --template-file kinesis-bucket.yaml \
+  --stack-name smeranovich-kinesis-bucket \
+  --region us-east-1
+```
+Deploy JAR:
 ```bash
 aws s3 cp target/flink-metrics-module6-1.0-SNAPSHOT.jar \
   s3://smeranovich-kinesis-app/flink-app-6/flink-metrics-module6-1.0-SNAPSHOT.jar
@@ -53,16 +60,12 @@ aws s3 cp target/flink-metrics-module6-1.0-SNAPSHOT.jar \
 
 ### 3. Deploy the CloudFormation stack
 
-> If the module 5 stack is still running, delete it first — both stacks use the same stream name `smeranovich-kinesis-stream` and KDA application name `smeranovich-metrics-processor`.
-
 ```bash
 aws cloudformation deploy \
   --stack-name smeranovich-kinesis-stack \
   --template-file kinesis-analytics.yaml \
   --capabilities CAPABILITY_IAM \
-  --parameter-overrides \
-      KinesisStreamRegion=us-east-1 \
-      ApplicationJarKey=flink-app-6/flink-metrics-module6-1.0-SNAPSHOT.jar
+  --region us-east-1
 ```
 
 Wait for the stack to reach `CREATE_COMPLETE`:
