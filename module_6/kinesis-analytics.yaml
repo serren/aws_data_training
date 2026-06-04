@@ -9,7 +9,7 @@ Parameters:
   ApplicationJarKey:
     Type: String
     Default: flink-app-6/flink-metrics-module6-1.0-SNAPSHOT.jar
-    Description: S3 object key for the Flink application uber JAR (must exist in smeranovich-kinesis-app before deploying)
+    Description: S3 object key for the Flink application uber JAR (must exist in my-test-kinesis-app before deploying)
 
 Resources:
 
@@ -18,7 +18,7 @@ Resources:
   MetricsKinesisStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: smeranovich-kinesis-stream
+      Name: my-test-kinesis-stream
       ShardCount: 1
       StreamModeDetails:
         StreamMode: PROVISIONED
@@ -28,7 +28,7 @@ Resources:
   OutputKinesisStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: smeranovich-kinesis-output-stream
+      Name: my-test-kinesis-output-stream
       ShardCount: 1
       StreamModeDetails:
         StreamMode: PROVISIONED
@@ -38,7 +38,7 @@ Resources:
   AthenaOutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: smeranovich-athena-output
+      BucketName: my-test-athena-output
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -50,7 +50,7 @@ Resources:
   FirehoseOutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: smeranovich-kinesis-output
+      BucketName: my-test-kinesis-output
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -93,7 +93,7 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:GetObjectVersion
-                Resource: arn:aws:s3:::smeranovich-kinesis-app/*
+                Resource: arn:aws:s3:::my-test-kinesis-app/*
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -144,7 +144,7 @@ Resources:
   ApplicationLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/kinesis-analytics/smeranovich-metrics-processor
+      LogGroupName: !Sub /aws/kinesis-analytics/my-test-metrics-processor
       RetentionInDays: 7
 
   ApplicationLogStream:
@@ -158,14 +158,14 @@ Resources:
   MetricsFlinkApplication:
     Type: AWS::KinesisAnalyticsV2::Application
     Properties:
-      ApplicationName: smeranovich-metrics-processor
+      ApplicationName: my-test-metrics-processor
       RuntimeEnvironment: FLINK-1_15
       ServiceExecutionRole: !GetAtt KinesisAnalyticsExecutionRole.Arn
       ApplicationConfiguration:
         ApplicationCodeConfiguration:
           CodeContent:
             S3ContentLocation:
-              BucketARN: !Sub arn:aws:s3:::smeranovich-kinesis-app
+              BucketARN: !Sub arn:aws:s3:::my-test-kinesis-app
               FileKey: !Ref ApplicationJarKey
           CodeContentType: ZIPFILE
         EnvironmentProperties:
@@ -196,7 +196,7 @@ Resources:
     Properties:
       ApplicationName: !Ref MetricsFlinkApplication
       CloudWatchLoggingOption:
-        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/smeranovich-metrics-processor:log-stream:kinesis-analytics-log-stream
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/my-test-metrics-processor:log-stream:kinesis-analytics-log-stream
 
   # ── Glue DataCatalog ─────────────────────────────────────────────────────────
 
@@ -205,16 +205,16 @@ Resources:
     Properties:
       CatalogId: !Sub '${AWS::AccountId}'
       DatabaseInput:
-        Name: smeranovich_kinesis_db
+        Name: my_test_kinesis_db
 
   MetricsGlueTable:
     Type: AWS::Glue::Table
     DependsOn: MetricsGlueDatabase
     Properties:
       CatalogId: !Sub '${AWS::AccountId}'
-      DatabaseName: smeranovich_kinesis_db
+      DatabaseName: my_test_kinesis_db
       TableInput:
-        Name: smeranovich_kinesis_metrics
+        Name: my_test_kinesis_metrics
         TableType: EXTERNAL_TABLE
         PartitionKeys:
           - Name: componentname
@@ -246,8 +246,8 @@ Resources:
     DependsOn: MetricsGlueTable
     Properties:
       CatalogId: !Sub '${AWS::AccountId}'
-      DatabaseName: smeranovich_kinesis_db
-      TableName: smeranovich_kinesis_metrics
+      DatabaseName: my_test_kinesis_db
+      TableName: my_test_kinesis_metrics
       PartitionInput:
         Values:
           - user-service
@@ -265,8 +265,8 @@ Resources:
     DependsOn: MetricsGlueTable
     Properties:
       CatalogId: !Sub '${AWS::AccountId}'
-      DatabaseName: smeranovich_kinesis_db
-      TableName: smeranovich_kinesis_metrics
+      DatabaseName: my_test_kinesis_db
+      TableName: my_test_kinesis_metrics
       PartitionInput:
         Values:
           - order-service
@@ -284,7 +284,7 @@ Resources:
   MetricsFirehose:
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: smeranovich-metrics-firehose
+      DeliveryStreamName: my-test-metrics-firehose
       DeliveryStreamType: KinesisStreamAsSource
       KinesisStreamSourceConfiguration:
         KinesisStreamARN: !GetAtt OutputKinesisStream.Arn

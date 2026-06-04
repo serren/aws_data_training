@@ -3,7 +3,7 @@ import pandas as pd
 import boto3
 import io
 
-bucket_name = "smeranovich"
+bucket_name = "my-test-bucket"
 input_prefix = "csv-data/"
 output_prefix = "parquet-data/"
 

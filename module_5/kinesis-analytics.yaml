@@ -9,13 +9,13 @@ Parameters:
   ApplicationJarKey:
     Type: String
     Default: flink-app/flink-metrics-1.0-SNAPSHOT.jar
-    Description: S3 object key for the Flink application uber JAR (must exist in smeranovich-kinesis-app before deploying)
+    Description: S3 object key for the Flink application uber JAR (must exist in my-test-kinesis-app before deploying)
 
 Resources:
   MetricsKinesisStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: smeranovich-kinesis-stream
+      Name: my-test-kinesis-stream
       ShardCount: 1
       StreamModeDetails:
         StreamMode: PROVISIONED
@@ -47,7 +47,7 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:GetObjectVersion
-                Resource: arn:aws:s3:::smeranovich-kinesis-app/*
+                Resource: arn:aws:s3:::my-test-kinesis-app/*
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -60,7 +60,7 @@ Resources:
   ApplicationLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/kinesis-analytics/smeranovich-metrics-processor
+      LogGroupName: !Sub /aws/kinesis-analytics/my-test-metrics-processor
       RetentionInDays: 7
 
   ApplicationLogStream:
@@ -72,14 +72,14 @@ Resources:
   MetricsFlinkApplication:
     Type: AWS::KinesisAnalyticsV2::Application
     Properties:
-      ApplicationName: smeranovich-metrics-processor
+      ApplicationName: my-test-metrics-processor
       RuntimeEnvironment: FLINK-1_15
       ServiceExecutionRole: !GetAtt KinesisAnalyticsExecutionRole.Arn
       ApplicationConfiguration:
         ApplicationCodeConfiguration:
           CodeContent:
             S3ContentLocation:
-              BucketARN: !Sub arn:aws:s3:::smeranovich-kinesis-app
+              BucketARN: !Sub arn:aws:s3:::my-test-kinesis-app
               FileKey: !Ref ApplicationJarKey
           CodeContentType: ZIPFILE
         EnvironmentProperties:
@@ -106,7 +106,7 @@ Resources:
     Properties:
       ApplicationName: !Ref MetricsFlinkApplication
       CloudWatchLoggingOption:
-        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/smeranovich-metrics-processor:log-stream:kinesis-analytics-log-stream
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesis-analytics/my-test-metrics-processor:log-stream:kinesis-analytics-log-stream
 
 Outputs:
   KinesisStreamName:

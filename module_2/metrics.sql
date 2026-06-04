@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE `smeranovich_metrics`(
+CREATE EXTERNAL TABLE `my_test_metrics`(
   `fromtimestamp` string COMMENT '', 
   `maxvalue` double COMMENT '', 
   `metricname` string COMMENT '', 
@@ -14,13 +14,13 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT 
   'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION
-  's3://smeranovich/parquet-data'
+  's3://my-test-bucket/parquet-data'
 TBLPROPERTIES (
   'classification'='parquet', 
   'transient_lastDdlTime'='1779605881')
   
-ALTER TABLE smeranovich_metrics
-    ADD PARTITION (componentname = 'order-service') LOCATION 's3://smeranovich/parquet-data/order-service/';
+ALTER TABLE my_test_metrics
+    ADD PARTITION (componentname = 'order-service') LOCATION 's3://my-test-bucket/parquet-data/order-service/';
 	
-ALTER TABLE smeranovich_metrics
-    ADD PARTITION (componentname = 'user-service') LOCATION 's3://smeranovich/parquet-data/user-service/';	
+ALTER TABLE my_test_metrics
+    ADD PARTITION (componentname = 'user-service') LOCATION 's3://my-test-bucket/parquet-data/user-service/';	

@@ -14,15 +14,15 @@
         "name": "componentname",
         "label": "Component",
         "type": "query",
-        "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+        "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
         "query": {
           "connectionArgs": {
             "catalog": "AwsDataCatalog",
-            "database": "smeranovich_kinesis_db",
+            "database": "my_test_kinesis_db",
             "region": "__default"
           },
           "format": 1,
-          "rawSQL": "SELECT DISTINCT componentname FROM smeranovich_kinesis_metrics ORDER BY componentname"
+          "rawSQL": "SELECT DISTINCT componentname FROM my_test_kinesis_metrics ORDER BY componentname"
         },
         "refresh": 2,
         "sort": 1,
@@ -33,15 +33,15 @@
         "name": "metricname",
         "label": "Metric",
         "type": "query",
-        "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+        "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
         "query": {
           "connectionArgs": {
             "catalog": "AwsDataCatalog",
-            "database": "smeranovich_kinesis_db",
+            "database": "my_test_kinesis_db",
             "region": "__default"
           },
           "format": 1,
-          "rawSQL": "SELECT DISTINCT metricname FROM smeranovich_kinesis_metrics WHERE componentname = '${componentname}' ORDER BY metricname"
+          "rawSQL": "SELECT DISTINCT metricname FROM my_test_kinesis_metrics WHERE componentname = '${componentname}' ORDER BY metricname"
         },
         "refresh": 2,
         "sort": 1,
@@ -56,7 +56,7 @@
       "type": "timeseries",
       "title": "${metricname} — ${componentname}",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
       "fieldConfig": {
         "defaults": { "unit": "short" },
         "overrides": []
@@ -68,14 +68,14 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+          "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
           "connectionArgs": {
             "catalog": "AwsDataCatalog",
-            "database": "smeranovich_kinesis_db",
+            "database": "my_test_kinesis_db",
             "region": "__default"
           },
           "format": 0,
-          "rawSQL": "SELECT from_iso8601_timestamp(fromtimestamp) AS time, (minvalue + maxvalue) / 2.0 AS avg_value, minvalue, maxvalue FROM \"smeranovich_kinesis_db\".\"smeranovich_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY time"
+          "rawSQL": "SELECT from_iso8601_timestamp(fromtimestamp) AS time, (minvalue + maxvalue) / 2.0 AS avg_value, minvalue, maxvalue FROM \"my_test_kinesis_db\".\"my_test_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY time"
         }
       ]
     },
@@ -84,19 +84,19 @@
       "type": "table",
       "title": "Raw data — last 20 windows",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
-      "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+      "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
       "options": { "sortBy": [] },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena-smeranovich" },
+          "datasource": { "type": "grafana-athena-datasource", "uid": "my-test-athena" },
           "connectionArgs": {
             "catalog": "AwsDataCatalog",
-            "database": "smeranovich_kinesis_db",
+            "database": "my_test_kinesis_db",
             "region": "__default"
           },
           "format": 1,
-          "rawSQL": "SELECT fromtimestamp, totimestamp, componentname, metricname, minvalue, maxvalue, unit FROM \"smeranovich_kinesis_db\".\"smeranovich_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY totimestamp DESC LIMIT 20"
+          "rawSQL": "SELECT fromtimestamp, totimestamp, componentname, metricname, minvalue, maxvalue, unit FROM \"my_test_kinesis_db\".\"my_test_kinesis_metrics\" WHERE componentname = '${componentname}' AND metricname = '${metricname}' ORDER BY totimestamp DESC LIMIT 20"
         }
       ]
     }

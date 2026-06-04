@@ -5,7 +5,7 @@ Resources:
   ApplicationJarBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: smeranovich-kinesis-app
+      BucketName: my-test-kinesis-app
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:

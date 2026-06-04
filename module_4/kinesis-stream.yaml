@@ -5,7 +5,7 @@ Resources:
   MyKinesisStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: smeranovich-kinesis-stream
+      Name: my-test-kinesis-stream
       ShardCount: 1
       StreamModeDetails:
         StreamMode: PROVISIONED

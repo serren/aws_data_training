@@ -3,12 +3,12 @@ Metadata:
   AWSToolsMetrics:
     IaC_Generator: "arn:aws:cloudformation:us-east-1:879548554867:generatedTemplate/abcb625a-3757-4ddf-bf8c-0d534da6175d"
 Resources:
-  GlueDatabaseSmeranovichdb:
+  GlueDatabaseMyTestdb:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::Glue::Database"
     DeletionPolicy: "Retain"
     Properties:
-      DatabaseName: "smeranovich_db"
+      DatabaseName: "my_test_db"
       CatalogId: "879548554867"
       DatabaseInput:
         CreateTableDefaultPermissions:
@@ -17,19 +17,19 @@ Resources:
           Principal:
             DataLakePrincipalIdentifier: "IAM_ALLOWED_PRINCIPALS"
         Parameters: {}
-        Name: "smeranovich_db"
-  IAMRoleSmeranovichgluerole:
+        Name: "my_test_db"
+  IAMRoleMyTestgluerole:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::IAM::Role"
     DeletionPolicy: "Retain"
     Properties:
       Path: "/"
       ManagedPolicyArns:
-      - "arn:aws:iam::879548554867:policy/smeranovich-glue-rolePolicy"
+      - "arn:aws:iam::879548554867:policy/my-test-glue-rolePolicy"
       - "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess"
       - "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
       MaxSessionDuration: 3600
-      RoleName: "smeranovich-glue-role"
+      RoleName: "my-test-glue-role"
       Description: ""
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -41,7 +41,7 @@ Resources:
           Effect: "Allow"
           Principal:
             Service: "glue.amazonaws.com"
-  GlueJobSmeranovichpyshelljob:
+  GlueJobMyTestpyshelljob:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::Glue::Job"
     DeletionPolicy: "Retain"
@@ -52,25 +52,25 @@ Resources:
       Timeout: 2880
       AllocatedCapacity: 0
       JobRunQueuingEnabled: false
-      Name: "smeranovich_py_shell_job"
-      Role: "arn:aws:iam::879548554867:role/smeranovich-glue-role"
+      Name: "my_test_py_shell_job"
+      Role: "arn:aws:iam::879548554867:role/my-test-glue-role"
       DefaultArguments:
         "--enable-job-insights": "false"
         "--job-language": "python"
-        "--TempDir": "s3://smeranovich/temporary/"
+        "--TempDir": "s3://my-test-bucket/temporary/"
         "--enable-observability-metrics": "false"
         "--enable-glue-datacatalog": "true"
         library-set: "analytics"
       ExecutionClass: "STANDARD"
       Command:
-        ScriptLocation: "s3://smeranovich/scripts/smeranovich_py_shell_job.py"
+        ScriptLocation: "s3://my-test-bucket/scripts/py_shell_job.py"
         PythonVersion: "3.9"
         Name: "pythonshell"
       GlueVersion: "3.0"
       ExecutionProperty:
         MaxConcurrentRuns: 1
       MaxCapacity: 0.0625
-  S3BucketSmeranovichathena:
+  S3BucketMyTestathena:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::S3::Bucket"
     DeletionPolicy: "Retain"
@@ -81,7 +81,7 @@ Resources:
         IgnorePublicAcls: true
         BlockPublicPolicy: true
         BlockPublicAcls: true
-      BucketName: "smeranovich-athena"
+      BucketName: "my-test-athena"
       OwnershipControls:
         Rules:
         - ObjectOwnership: "BucketOwnerEnforced"
@@ -93,7 +93,7 @@ Resources:
             - "SSE-C"
           ServerSideEncryptionByDefault:
             SSEAlgorithm: "AES256"
-  S3BucketSmeranovich:
+  S3BucketMyTest:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::S3::Bucket"
     DeletionPolicy: "Retain"
@@ -104,7 +104,7 @@ Resources:
         IgnorePublicAcls: true
         BlockPublicPolicy: true
         BlockPublicAcls: true
-      BucketName: "smeranovich"
+      BucketName: "my-test-bucket"
       OwnershipControls:
         Rules:
         - ObjectOwnership: "BucketOwnerEnforced"
@@ -116,12 +116,12 @@ Resources:
             - "SSE-C"
           ServerSideEncryptionByDefault:
             SSEAlgorithm: "AES256"
-  IAMManagedPolicyPolicysmeranovichgluerolePolicy:
+  IAMManagedPolicyPolicymytestgluerolePolicy:
     UpdateReplacePolicy: "Retain"
     Type: "AWS::IAM::ManagedPolicy"
     DeletionPolicy: "Retain"
     Properties:
-      ManagedPolicyName: "smeranovich-glue-rolePolicy"
+      ManagedPolicyName: "my-test-glue-rolePolicy"
       Path: "/"
       Description: ""
       Groups: []
@@ -132,11 +132,11 @@ Resources:
             StringEquals:
               aws:ResourceAccount: "879548554867"
           Resource:
-          - "arn:aws:s3:::smeranovich/*"
+          - "arn:aws:s3:::my-test-bucket/*"
           Action:
           - "s3:GetObject"
           - "s3:PutObject"
           Effect: "Allow"
       Roles:
-      - "smeranovich-glue-role"
+      - "my-test-glue-role"
       Users: []

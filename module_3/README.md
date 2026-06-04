@@ -5,12 +5,12 @@ Visualises windowed metrics from module_6 using Grafana with the Amazon Athena p
 ## Architecture
 
 ```
-S3 (smeranovich-kinesis-output)
+S3 (my-test-kinesis-output)
         │
         ▼
 AWS Glue / Athena
-  database: smeranovich_kinesis_db
-  table:    smeranovich_kinesis_metrics
+  database: my_test_kinesis_db
+  table:    my_test_kinesis_metrics
         │
         ▼
 Grafana (Docker, localhost:3000)
@@ -21,7 +21,7 @@ Grafana (Docker, localhost:3000)
 ## Prerequisites
 
 - Docker and Docker Compose
-- AWS credentials with access to Athena, Glue, and S3 (`smeranovich-athena-output`)
+- AWS credentials with access to Athena, Glue, and S3 (`my-test-athena-output`)
 - module_6 stack deployed (Glue database + table must exist)
 
 ## Setup
