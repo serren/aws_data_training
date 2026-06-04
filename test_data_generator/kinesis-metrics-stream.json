@@ -1,0 +1,40 @@
+{
+  "@type": "kinesis-metrics-stream",
+  "stream": {
+    "region": "us-east-1",
+    "streamName": "my-test-kinesis-stream",
+    "timeoutMillis": 3000
+  },
+  "iterationsNumber": 25,
+  "timer": {
+    "@type": "realtime",
+    "startTime": "2020-01-01T12:45:54.000Z",
+    "rateMillis": 2000
+  },
+  "metrics": {
+    "user-service": {
+      "cpu": {
+        "unit": "percent",
+        "minValue": 10.0,
+        "maxValue": 25.0
+      },
+      "ram": {
+        "unit": "percent",
+        "minValue": 50.0,
+        "maxValue": 75.0
+      }
+    },
+    "order-service": {
+      "cpu": {
+        "unit": "percent",
+        "minValue": 20.0,
+        "maxValue": 30.0
+      },
+      "ram": {
+        "unit": "percent",
+        "minValue": 10.0,
+        "maxValue": 90.0
+      }
+    }
+  }
+}
