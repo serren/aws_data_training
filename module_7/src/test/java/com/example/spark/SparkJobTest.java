@@ -86,17 +86,24 @@ class SparkJobTest {
         // cutoff (24h back)         = 2022-09-14T14:00:00Z
         // Timestamps below are at 2022-09-15T13:xx — WITHIN the 24h window
 
+        // Third order-service line has no milliseconds — verifies the no-millis timestamp fix
         String auditLogs =
                 "<masked>  - order-service \"POST /api/v1/audit\" 200 [2022-09-15T13:43:01.721Z] \"Apache HTTP Client\"\n" +
                 "<masked>  - order-service \"POST /api/v1/audit\" 200 [2022-09-15T13:43:16.976Z] \"Apache HTTP Client\"\n" +
-                "<masked>  - inventory-service \"POST /api/v1/audit\" 200 [2022-09-15T13:43:02.561Z] \"Apache HTTP Client\"\n";
+                "<masked>  - inventory-service \"POST /api/v1/audit\" 200 [2022-09-15T13:43:02.561Z] \"Apache HTTP Client\"\n" +
+                "<masked>  - order-service \"POST /api/v1/audit\" 200 [2022-09-15T13:44:00Z] \"Apache HTTP Client\"\n";
 
         // Timestamp 2022-09-14T12:00Z is BEFORE the cutoff — must be filtered out
         String userLogs =
                 "<masked>  - order-service \"GET /api/v1/users\" 200 [2022-09-14T12:00:00.000Z] \"Apache HTTP Client\"\n";
 
+        // User-originated traffic (real IP, non-service remoteUser) — must not appear in reports
+        String userServiceLogs =
+                "192.168.15.15  - 129837ejghdfdhg \"GET /api/v1/users/{id}\" 200 [2022-09-15T13:45:00Z] \"Chrome\"\n";
+
         s3Client.putObject(INPUT_BUCKET, "audit-service-2022-09-15.txt", auditLogs);
         s3Client.putObject(INPUT_BUCKET, "user-service-2022-09-14.txt", userLogs);
+        s3Client.putObject(INPUT_BUCKET, "user-service-2022-09-15.txt", userServiceLogs);
     }
 
     @AfterAll
@@ -115,13 +122,13 @@ class SparkJobTest {
         List<TrafficReport> reports = readReports();
 
         assertEquals(2, reports.size(),
-                "Expected exactly 2 traffic reports, got: " + reports.size());
+                "Expected exactly 2 traffic reports (user-originated traffic must be excluded), got: " + reports.size());
 
         TrafficReport orderToAudit = reports.stream()
                 .filter(r -> "order-service".equals(r.getSource()) && "audit-service".equals(r.getTarget()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Missing order-service -> audit-service report"));
-        assertEquals(2L, orderToAudit.getTotalRequests());
+        assertEquals(3L, orderToAudit.getTotalRequests());
         assertEquals(16, orderToAudit.getId().length());
 
         TrafficReport inventoryToAudit = reports.stream()

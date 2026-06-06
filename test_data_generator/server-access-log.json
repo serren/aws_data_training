@@ -185,7 +185,7 @@
   "networkLagMaxMillis": 1500,
   "timer": {
     "@type": "synthetic",
-    "startTime": "2022-09-15T13:43:01.005Z",
+    "startTime": "2026-06-06T13:43:01.005Z",
     "stepMillis": 15000
   },
   "outputDirectoryPath": "test-output"

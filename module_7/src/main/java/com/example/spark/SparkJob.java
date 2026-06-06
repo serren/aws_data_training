@@ -46,10 +46,14 @@ public class SparkJob {
         Dataset<Row> result = raw
                 .withColumn("file_path", input_file_name())
                 .withColumn("target", regexp_extract(col("file_path"), FILENAME_REGEX, 1))
+                .withColumn("caller", regexp_extract(col("value"), LOG_REGEX, 1))
                 .withColumn("source", regexp_extract(col("value"), LOG_REGEX, 3))
                 .withColumn("ts_str", regexp_extract(col("value"), LOG_REGEX, 4))
+                .filter(col("caller").equalTo("<masked>"))
                 .filter(col("source").notEqual(""))
-                .withColumn("ts", to_timestamp(col("ts_str"), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
+                .withColumn("ts", coalesce(
+                        to_timestamp(col("ts_str"), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
+                        to_timestamp(col("ts_str"), "yyyy-MM-dd'T'HH:mm:ss'Z'")))
                 .filter(col("ts").isNotNull())
                 .filter(unix_timestamp(col("ts")).geq(cutoffEpochSeconds))
                 .groupBy(col("source"), col("target"))

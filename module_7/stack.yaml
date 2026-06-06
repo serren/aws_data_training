@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Module 7 - EMR Serverless infrastructure (S3, IAM, Glue catalog, EMR Serverless)
+
+Parameters:
+  EMRReleaseLabel:
+    Type: String
+    Default: emr-7.1.0
+    Description: >
+      EMR Serverless release label. Check available values in the AWS Console:
+      EMR -> Serverless -> Create application -> Release dropdown.
+
+Resources:
+
+  # ── S3 Buckets ────────────────────────────────────────────────────────────────
+
+  SourceCodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'my-test-source-code-${AWS::AccountId}'
+
+  AccessLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'my-test-access-logs-${AWS::AccountId}'
+
+  TrafficReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'my-test-traffic-reports-${AWS::AccountId}'
+
+  AthenaOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'my-test-athena-output-${AWS::AccountId}'
+
+  # ── IAM Role ──────────────────────────────────────────────────────────────────
+
+  EMRExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: my-test-emr-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: emr-serverless.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: GetObjects
+                Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub '${AccessLogsBucket.Arn}/*'
+                  - !Sub '${SourceCodeBucket.Arn}/*'
+              - Sid: ListBuckets
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource:
+                  - !GetAtt AccessLogsBucket.Arn
+                  - !GetAtt SourceCodeBucket.Arn
+                  - !GetAtt TrafficReportsBucket.Arn
+              - Sid: WriteReports
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:AbortMultipartUpload
+                Resource: !Sub '${TrafficReportsBucket.Arn}/*'
+
+  # ── Glue Data Catalog ─────────────────────────────────────────────────────────
+
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: my_test_emr_db
+
+  TrafficReportsTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref GlueDatabase
+      TableInput:
+        Name: my_test_traffic_reports
+        TableType: EXTERNAL_TABLE
+        Parameters:
+          classification: json
+        StorageDescriptor:
+          Columns:
+            - Name: id
+              Type: string
+            - Name: source
+              Type: string
+            - Name: target
+              Type: string
+            - Name: totalRequests
+              Type: bigint
+          Location: !Sub 's3://${TrafficReportsBucket}/reports/'
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+            Parameters:
+              serialization.format: '1'
+
+  # ── EMR Serverless Application ────────────────────────────────────────────────
+
+  SparkApplication:
+    Type: AWS::EMRServerless::Application
+    Properties:
+      Name: my-test-spark-app
+      ReleaseLabel: !Ref EMRReleaseLabel
+      Type: SPARK
+      MaximumCapacity:
+        Cpu: 3 vCPU
+        Memory: 4 GB
+        Disk: 60 GB
+
+Outputs:
+
+  SourceCodeBucket:
+    Value: !Ref SourceCodeBucket
+
+  AccessLogsBucket:
+    Value: !Ref AccessLogsBucket
+
+  TrafficReportsBucket:
+    Value: !Ref TrafficReportsBucket
+
+  AthenaOutputBucket:
+    Value: !Ref AthenaOutputBucket
+
+  EMRExecutionRoleArn:
+    Value: !GetAtt EMRExecutionRole.Arn
+
+  GlueDatabase:
+    Value: !Ref GlueDatabase
+
+  GlueTable:
+    Value: !Ref TrafficReportsTable
+
+  SparkApplicationId:
+    Value: !Ref SparkApplication
