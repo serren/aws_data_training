@@ -34,6 +34,14 @@ File name encodes the **target** service: `audit-service-2022-09-15.txt`
 ```
 module_7/
   stack.yaml                         # CloudFormation stack (all AWS resources)
+  job-driver.json                    # EMR Serverless job submission payload
+  grafana/
+    docker-compose.yml               # Grafana container (port 3001)
+    .env.example                     # AWS credentials template
+    provisioning/
+      datasources/athena.yaml        # Athena datasource → my_test_emr_db
+      dashboards/dashboard.yaml      # dashboard provider config
+      dashboards/traffic.json        # Service Call Graph (Node Graph panel)
   src/
     main/java/com/example/spark/
       SparkJob.java                  # entry point + DataFrame pipeline
@@ -198,7 +206,7 @@ s3://my-test-traffic-reports-{AccountId}/reports/part-00000-*.json
 
 ## Visualise with Grafana
 
-A self-contained Grafana setup lives in `grafana/` (port **3001**, separate from module 3).
+A self-contained Grafana setup lives in `grafana/` (port **3001**).
 Prereqs: CloudFormation stack deployed and EMR job run at least once.
 
 ```bash
