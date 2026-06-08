@@ -1,0 +1,81 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {
+      "type": "panel",
+      "id": "nodeGraph",
+      "name": "Node Graph",
+      "version": ""
+    },
+    {
+      "type": "datasource",
+      "id": "grafana-athena-datasource",
+      "name": "Athena",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "description": "Service-to-service call graph derived from EMR Spark job output",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-athena-datasource",
+        "uid": "my-test-emr-athena"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "edges": {
+          "mainStatUnit": "short"
+        },
+        "nodes": {}
+      },
+      "targets": [
+        {
+          "connectionArgs": {
+            "catalog": "AwsDataCatalog",
+            "database": "my_test_emr_db",
+            "region": "__default",
+            "resultReuseEnabled": false
+          },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "my-test-emr-athena"
+          },
+          "format": 1,
+          "rawSQL": "SELECT id, source, target, totalRequests as mainStat FROM \"my_test_emr_db\".\"my_test_traffic_reports\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Service Call Graph",
+      "type": "nodeGraph"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["emr", "spark", "call-graph"],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Service Call Graph",
+  "uid": "service-call-graph",
+  "version": 1
+}

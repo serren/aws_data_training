@@ -1,0 +1,17 @@
+apiVersion: 1
+datasources:
+  - name: My Test EMR Athena
+    uid: my-test-emr-athena
+    type: grafana-athena-datasource
+    access: proxy
+    jsonData:
+      authType: keys
+      defaultRegion: us-east-1
+      catalog: AwsDataCatalog
+      database: my_test_emr_db
+      workgroup: primary
+      outputLocation: s3://my-test-athena-output-${ACCOUNT_ID}/
+    secureJsonData:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
+      sessionToken: ${AWS_SESSION_TOKEN}

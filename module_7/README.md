@@ -130,6 +130,8 @@ aws s3 cp target/module_7-1.0-SNAPSHOT.jar \
 
 ### 4. Submit the job
 
+On **Linux / macOS**:
+
 ```bash
 aws emr-serverless start-job-run \
   --application-id <app-id> \
@@ -146,6 +148,30 @@ aws emr-serverless start-job-run \
       "sparkSubmitParameters": "--class com.example.spark.SparkJob --conf spark.executor.cores=1 --conf spark.executor.memory=1g --conf spark.driver.cores=1 --conf spark.driver.memory=1g --conf spark.executor.instances=1"
     }
   }'
+```
+
+On **Windows (PowerShell)** — use a file to avoid JSON parsing issues:
+
+```powershell
+@"
+{
+  "sparkSubmit": {
+    "entryPoint": "s3://my-test-source-code-{AccountId}/jars/module_7-1.0-SNAPSHOT.jar",
+    "entryPointArguments": [
+      "s3://my-test-access-logs-{AccountId}",
+      "s3://my-test-traffic-reports-{AccountId}",
+      "24"
+    ],
+    "sparkSubmitParameters": "--class com.example.spark.SparkJob --conf spark.executor.cores=1 --conf spark.executor.memory=1g --conf spark.driver.cores=1 --conf spark.driver.memory=1g --conf spark.executor.instances=1"
+  }
+}
+"@ | Out-File -FilePath job-driver.json -Encoding utf8
+
+aws emr-serverless start-job-run `
+  --application-id <app-id> `
+  --execution-role-arn <role-arn> `
+  --region us-east-1 `
+  --job-driver file://job-driver.json
 ```
 
 | Argument | Description |
@@ -172,12 +198,22 @@ s3://my-test-traffic-reports-{AccountId}/reports/part-00000-*.json
 
 ## Visualise with Grafana
 
-Use the local Grafana container from module 3 with an **Athena datasource** pointed
-at the Glue table `my_test_emr_db.my_test_traffic_reports`. Configure the Athena
-query result location to `s3://my-test-athena-output-{AccountId}/`.
+A self-contained Grafana setup lives in `grafana/` (port **3001**, separate from module 3).
+Prereqs: CloudFormation stack deployed and EMR job run at least once.
 
-Use a **Node Graph panel** with the traffic report records as the _edges_ data frame
-(fields: `id`, `source` → `source`, `target` → `target`, `totalRequests`).
+```bash
+cd grafana
+cp .env.example .env
+# Fill in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN,
+# AWS_DEFAULT_REGION (default: us-east-1), and ACCOUNT_ID (your 12-digit AWS account ID).
+docker compose up -d
+```
+
+Open http://localhost:3001 — login `admin` / `admin`.
+
+The **Service Call Graph** dashboard is provisioned automatically. It shows a Node Graph
+panel with one circle per service and one directed edge per `(source → target)` pair,
+labelled with `totalRequests`.
 
 ## Teardown
 

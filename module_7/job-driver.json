@@ -1,0 +1,11 @@
+{
+  "sparkSubmit": {
+    "entryPoint": "s3://my-test-source-code-746511852440/jars/module_7-1.0-SNAPSHOT.jar",
+    "entryPointArguments": [
+      "s3://my-test-access-logs-746511852440",
+      "s3://my-test-traffic-reports-746511852440",
+      "24"
+    ],
+    "sparkSubmitParameters": "--class com.example.spark.SparkJob --conf spark.executor.cores=1 --conf spark.executor.memory=1g --conf spark.driver.cores=1 --conf spark.driver.memory=1g --conf spark.executor.instances=1"
+  }
+}
