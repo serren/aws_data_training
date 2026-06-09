@@ -1,1 +1,0 @@
-%USERPROFILE%\.jdks\corretto-17.0.17\bin\java.exe -jar test-data-generator-1.0.0-all.jar kinesis-metrics-stream.json

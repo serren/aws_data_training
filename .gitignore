@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 **/dependency-reduced-pom.xml
 **/test-output/**
+**/spec/**
 .kotlin
 
 ### IntelliJ IDEA ###
